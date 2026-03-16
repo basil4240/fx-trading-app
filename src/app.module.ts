@@ -9,9 +9,29 @@ import { WalletModule } from './wallet/wallet.module';
 import { FxModule } from './fx/fx.module';
 import { TradingModule } from './trading/trading.module';
 import { AuditModule } from './audit/audit.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [CommonModule, IamModule, AccountModule, NotificationModule, WalletModule, FxModule, TradingModule, AuditModule],
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: 'localhost',
+      port: 5432,
+      username: 'postgres',
+      password: 'winifred',
+      database: 'typeorm_demo',
+      autoLoadEntities: true,
+      synchronize: true,
+    }),
+    CommonModule,
+    IamModule,
+    AccountModule,
+    NotificationModule,
+    WalletModule,
+    FxModule,
+    TradingModule,
+    AuditModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
