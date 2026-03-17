@@ -14,6 +14,8 @@ import { CurrencyPair } from '../fx/entities/currency-pair.entity';
 import { Wallet } from '../wallet/entities/wallet.entity';
 import { WalletBalance } from '../wallet/entities/wallet-balance.entity';
 import { FundingTransaction } from '../wallet/entities/funding-transaction.entity';
+import { Trade } from '../trading/entities/trade.entity';
+import { TradeFee } from '../trading/entities/trade-fee.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -36,6 +38,8 @@ export const AppDataSource = new DataSource({
     Wallet,
     WalletBalance,
     FundingTransaction,
+    Trade,
+    TradeFee,
   ],
 
   migrations: ['src/database/migrations/*.ts'],
