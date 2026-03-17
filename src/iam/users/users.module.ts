@@ -11,6 +11,7 @@ import { PasswordHistory } from '../entities/password-history.entity';
 import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { UserProfile } from 'src/account/entities/user-profile.entity';
 import { AdminProfile } from 'src/account/entities/admin-profile.entity';
+import { WalletModule } from 'src/wallet/wallet.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AdminProfile } from 'src/account/entities/admin-profile.entity';
     ]),
     CommonModule,
     NotificationModule,
+    WalletModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],

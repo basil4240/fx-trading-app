@@ -1,7 +1,5 @@
 import {
   ConflictException,
-  GoneException,
-  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -21,6 +19,7 @@ import { LoginDto } from '../dto/login.dto';
 import { UserLoginResponse } from '../users/responses/user-login.response';
 import { AccountStatus } from 'src/common/enums/account-status.enum';
 import { ActiveUserData } from 'src/common/interfaces/active-user-data.interface';
+import { Wallet } from 'src/wallet/entities/wallet.entity';
 
 @Injectable()
 export class AdminsService {
@@ -66,6 +65,12 @@ export class AdminsService {
         employeeId: adminRegistrationDto.employeeId,
       });
       await manager.save(adminProfile);
+
+      // Create Wallet for Admin
+      const wallet = manager.create(Wallet, {
+        iamUserId: savedAdmin.id,
+      });
+      await manager.save(wallet);
 
       await manager.save(PasswordHistory, {
         iamUserId: savedAdmin.id,

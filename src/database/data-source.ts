@@ -9,6 +9,11 @@ import { PasswordChangeToken } from '../iam/entities/password-change-token.entit
 import { EmailVerificationToken } from '../iam/entities/email-verification-token.entity';
 import { UserProfile } from '../account/entities/user-profile.entity';
 import { AdminProfile } from '../account/entities/admin-profile.entity';
+import { Currency } from '../fx/entities/currency.entity';
+import { CurrencyPair } from '../fx/entities/currency-pair.entity';
+import { Wallet } from '../wallet/entities/wallet.entity';
+import { WalletBalance } from '../wallet/entities/wallet-balance.entity';
+import { FundingTransaction } from '../wallet/entities/funding-transaction.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -26,6 +31,11 @@ export const AppDataSource = new DataSource({
     EmailVerificationToken,
     UserProfile,
     AdminProfile,
+    Currency,
+    CurrencyPair,
+    Wallet,
+    WalletBalance,
+    FundingTransaction,
   ],
 
   migrations: ['src/database/migrations/*.ts'],

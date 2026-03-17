@@ -48,9 +48,6 @@ export function baseEmailTemplate(options: BaseEmailTemplateOptions): string {
                     <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">
                       FX Trading App
                     </h1>
-                    <p style="margin:4px 0 0;font-size:12px;color:rgba(255,255,255,0.75);letter-spacing:1px;text-transform:uppercase;">
-                      Medical Laboratory System
-                    </p>
                   </td>
                 </tr>
 

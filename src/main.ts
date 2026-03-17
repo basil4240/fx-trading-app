@@ -19,7 +19,12 @@ function configureSwagger(app: INestApplication): void {
       'IAM - Users',
       'Endpoints for user registration, authentication, and security',
     )
-    .addTag('Account', 'Management of user accounts and profiles')
+    .addTag(
+      'IAM - Admins',
+      'Administrative authentication and account management',
+    )
+    .addTag('User Profiles', 'Management of regular user profiles and KYC')
+    .addTag('Admin Profiles', 'Management of administrative staff profiles')
     .addTag(
       'Wallet',
       'Financial operations, balances, and multi-currency support',

@@ -1,34 +1,71 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
-import { CreateWalletDto } from './dto/create-wallet.dto';
-import { UpdateWalletDto } from './dto/update-wallet.dto';
+import { ActiveUser } from 'src/common/decorators/active-user.decorator';
+import { InitializeFundingDto } from './dto/initialize-funding.dto';
+import { VerifyFundingDto } from './dto/verify-funding.dto';
+import { DataResponse } from 'src/common/responses';
+import { AuthenticationGuard } from 'src/common/guards/authentication/authentication.guard';
+import { RolesGuard } from 'src/common/guards/roles/roles.guard';
+import { Role } from 'src/common/enums/role.enum';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
+@ApiTags('Wallet')
+@ApiBearerAuth()
+@UseGuards(AuthenticationGuard, RolesGuard)
 @Controller('wallet')
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
-  @Post()
-  create(@Body() createWalletDto: CreateWalletDto) {
-    return this.walletService.create(createWalletDto);
+  @ApiOperation({ summary: 'Get current user wallet balances' })
+  @Roles(Role.User)
+  @ApiResponse({ status: 200, description: 'Success' })
+  @Get('balances')
+  async getBalances(
+    @ActiveUser('sub') userId: string,
+  ): Promise<DataResponse<any>> {
+    const balances = await this.walletService.getBalances(userId);
+    return {
+      message: 'Wallet balances retrieved successfully',
+      data: balances,
+    };
   }
 
-  @Get()
-  findAll() {
-    return this.walletService.findAll();
+  @ApiOperation({ summary: 'Initialize wallet funding' })
+  @Roles(Role.User)
+  @ApiResponse({ status: 201, description: 'Created' })
+  @Post('fund/initialize')
+  async initializeFunding(
+    @ActiveUser('sub') userId: string,
+    @Body() dto: InitializeFundingDto,
+  ): Promise<DataResponse<any>> {
+    const response = await this.walletService.initializeFunding(userId, dto);
+    return {
+      message: 'Funding initialized successfully',
+      data: response,
+    };
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.walletService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWalletDto: UpdateWalletDto) {
-    return this.walletService.update(+id, updateWalletDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.walletService.remove(+id);
+  @ApiOperation({ summary: 'Verify wallet funding' })
+  @Roles(Role.User)
+  @ApiResponse({ status: 200, description: 'Success' })
+  @Post('fund/verify')
+  async verifyFunding(
+    @ActiveUser('sub') userId: string,
+    @Body() dto: VerifyFundingDto,
+  ): Promise<DataResponse<any>> {
+    const response = await this.walletService.verifyFunding(
+      userId,
+      dto.reference,
+    );
+    return {
+      message: 'Funding verification completed',
+      data: response,
+    };
   }
 }

@@ -43,6 +43,8 @@ import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { PasswordChangeToken } from '../entities/password-change-token.entity';
 import { RefreshTokenStorageService } from 'src/common/services/refresh-token-storage.service';
 import { UserProfile } from 'src/account/entities/user-profile.entity';
+import { WalletService } from 'src/wallet/wallet.service';
+import { Wallet } from 'src/wallet/entities/wallet.entity';
 
 @Injectable()
 export class UsersService {
@@ -73,6 +75,7 @@ export class UsersService {
     private readonly emailVerificationTokenRepo: Repository<EmailVerificationToken>,
 
     private readonly notificationDispatcher: NotificationDispatcher,
+    private readonly walletService: WalletService,
   ) {}
 
   async register(
@@ -126,6 +129,12 @@ export class UsersService {
         displayName: userRegistrationDto.fullName,
       });
       await manager.save(userProfile);
+
+      // Create Wallet
+      const wallet = manager.create(Wallet, {
+        iamUserId: savedUser.id,
+      });
+      await manager.save(wallet);
 
       await manager.save(PasswordHistory, {
         iamUserId: savedUser.id,
