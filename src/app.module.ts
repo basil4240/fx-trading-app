@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
 import { Logger, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -11,8 +10,9 @@ import { TradingModule } from './trading/trading.module';
 import { AuditModule } from './audit/audit.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IamModule } from './iam/iam.module';
+import { HealthModule } from './health/health.module';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigModule, ConfigService, ConfigType } from '@nestjs/config';
+import { ConfigModule, ConfigType } from '@nestjs/config';
 import redisConfig from './common/config/redis.config';
 import databaseConfig from './common/config/database.config';
 
@@ -66,6 +66,7 @@ import databaseConfig from './common/config/database.config';
     }),
     CommonModule,
     IamModule,
+    HealthModule,
     AccountModule,
     NotificationModule,
     WalletModule,
