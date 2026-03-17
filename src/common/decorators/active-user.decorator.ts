@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
+ 
+ 
+ 
+ 
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { ActiveUserData } from 'src/common/interfaces/active-user-data.interface';
 import { Socket } from 'socket.io';

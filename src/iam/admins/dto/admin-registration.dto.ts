@@ -1,20 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
- 
+
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class UserRegistrationDto {
-  // Renamed from RegistrationDto to UserRegistrationDto to be more specific
-  @ApiProperty({ description: "The user's full name.", example: 'John Doe' })
+export class AdminRegistrationDto {
+  @ApiProperty({ description: "The admin's department.", example: 'Finance' })
   @IsString()
   @IsNotEmpty()
-  fullName: string;
+  department: string;
+
+  @ApiProperty({ description: "The admin's employee ID.", example: 'EMP-001' })
+  @IsString()
+  @IsNotEmpty()
+  employeeId: string;
 
   @ApiProperty({
-    description: 'The email address of the user.',
-    example: 'john.doe@example.com',
+    description: 'The email address of the admin.',
+    example: 'admin@example.com',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -22,7 +26,7 @@ export class UserRegistrationDto {
   email: string;
 
   @ApiProperty({
-    description: 'The password for the user account.',
+    description: 'The password for the admin account.',
     example: 'S3cureP@ssw0rd',
     minLength: 8,
   })

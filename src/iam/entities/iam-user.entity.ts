@@ -7,6 +7,7 @@ import {
   Entity,
   Index,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -14,6 +15,8 @@ import { PasswordHistory } from './password-history.entity';
 import { PasswordResetToken } from './password-reset-token.entity';
 import { PasswordChangeToken } from './password-change-token.entity';
 import { EmailVerificationToken } from './email-verification-token.entity';
+import { UserProfile } from 'src/account/entities/user-profile.entity';
+import { AdminProfile } from 'src/account/entities/admin-profile.entity';
 
 @Entity({ name: 'iam_users', schema: 'iam' })
 @Index(['email', 'role'], { unique: true })
@@ -64,6 +67,14 @@ export class IamUser {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
+
+  // ─── External relations ──────────────────────────────────────────────
+
+  @OneToOne(() => UserProfile, (up) => up.iamUser, { cascade: true })
+  userProfile: UserProfile;
+
+  @OneToOne(() => AdminProfile, (ap) => ap.iamUser, { cascade: true })
+  adminProfile: AdminProfile;
 
   // ─── IAM-internal relations ──────────────────────────────────────────────
 

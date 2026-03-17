@@ -106,6 +106,8 @@ export class HelperService {
       secret: this.jwtConfiguration.refreshSecret,
       audience: this.jwtConfiguration.tokenAudience,
       issuer: this.jwtConfiguration.tokenIssuer,
+      
+      
     });
 
     return payload;

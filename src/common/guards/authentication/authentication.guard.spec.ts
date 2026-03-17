@@ -5,7 +5,7 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { AuthTokenType } from '@src/common/enums/auth-token-type.enum';
-import { ActiveUserData } from '@src/common/interfaces/active-user-data.interface';
+import { ActiveUserData } from '../../interfaces/active-user-data.interface';
 import { AccessTokenGuard } from '../access-token/access-token.guard';
 import { WsException } from '@nestjs/websockets'; // New Import
 

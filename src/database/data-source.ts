@@ -7,6 +7,8 @@ import { PasswordHistory } from '../iam/entities/password-history.entity';
 import { PasswordResetToken } from '../iam/entities/password-reset-token.entity';
 import { PasswordChangeToken } from '../iam/entities/password-change-token.entity';
 import { EmailVerificationToken } from '../iam/entities/email-verification-token.entity';
+import { UserProfile } from '../account/entities/user-profile.entity';
+import { AdminProfile } from '../account/entities/admin-profile.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -22,6 +24,8 @@ export const AppDataSource = new DataSource({
     PasswordResetToken,
     PasswordChangeToken,
     EmailVerificationToken,
+    UserProfile,
+    AdminProfile,
   ],
 
   migrations: ['src/database/migrations/*.ts'],

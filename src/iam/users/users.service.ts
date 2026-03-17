@@ -5,6 +5,7 @@ import {
   GoneException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -41,9 +42,12 @@ import { NotificationDispatcher } from 'src/notification/notification.dispatcher
 import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { PasswordChangeToken } from '../entities/password-change-token.entity';
 import { RefreshTokenStorageService } from 'src/common/services/refresh-token-storage.service';
+import { UserProfile } from 'src/account/entities/user-profile.entity';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly refreshTokenStorageService: RefreshTokenStorageService,
     private readonly helperService: HelperService,
@@ -114,13 +118,20 @@ export class UsersService {
         passwordHash: hashedPassword,
         role: Role.User,
       });
-      await manager.save(user);
+      const savedUser = await manager.save(user);
+
+      // Create UserProfile
+      const userProfile = manager.create(UserProfile, {
+        iamUserId: savedUser.id,
+        displayName: userRegistrationDto.fullName,
+      });
+      await manager.save(userProfile);
+
       await manager.save(PasswordHistory, {
-        iamUserId: user.id,
+        iamUserId: savedUser.id,
         passwordHash: hashedPassword,
       });
-
-      return user;
+      return savedUser;
     });
 
     // generate email verification token
@@ -384,7 +395,7 @@ export class UsersService {
     // Update the otp to verified true
     await this.passwordResetTokenRepo.update(
       { id: passwordResetToken.id },
-      { isUsed: true },
+      { isUsed: false, verified: true },
     );
 
     return {
@@ -418,6 +429,8 @@ export class UsersService {
 
     // confirm if document exist
     if (!passwordResetToken) {
+      console.log(foundUser)
+      console.log('ffffffffffffffffffffffffffffffffffffffffffffff')
       throw new BadRequestException('Invalid token provided');
     }
 
@@ -426,29 +439,48 @@ export class UsersService {
       throw new BadRequestException('Otp has not been verified');
     }
 
+    // Check if the user does not have this new password in history
+    const passwordHistories = await this.passwordHistoryRepo.find({
+      where: { iamUserId: foundUser.id },
+    });
+
+    for (const history of passwordHistories) {
+      const isSame = await this.hashingService.compare(
+        passwordResetDto.password,
+        history.passwordHash,
+      );
+      if (isSame) {
+        throw new BadRequestException(
+          'You cannot use a password you have used before.',
+        );
+      }
+    }
+
     // hash the password
     const hashedPassword = await this.hashingService.hash(
       passwordResetDto.password,
     );
 
-    // TODO: Make sure that the user does not have this new password in history
+    await this.dataSource.transaction(async (manager) => {
+      // update the user password
+      await manager.update(
+        IamUser,
+        { id: foundUser.id },
+        { passwordHash: hashedPassword },
+      );
 
-    // update the user password
-    await this.userRepo.update(
-      {
-        id: foundUser.id,
-      },
-      {
+      // add password history
+      await manager.save(PasswordHistory, {
+        iamUserId: foundUser.id,
         passwordHash: hashedPassword,
-      },
-    );
+      });
 
-    // TODO: add password history
-
-    await this.passwordResetTokenRepo.update(
-      { id: passwordResetToken.id },
-      { isUsed: true },
-    );
+      await manager.update(
+        PasswordResetToken,
+        { id: passwordResetToken.id },
+        { isUsed: true },
+      );
+    });
 
     return {
       message: 'Password has been successfully reset.',
@@ -486,6 +518,23 @@ export class UsersService {
     const hashedPassword = await this.hashingService.hash(
       changePasswordDto.newPassword,
     );
+
+    // Check if the user does not have this new password in history
+    const passwordHistories = await this.passwordHistoryRepo.find({
+      where: { iamUserId: user.id },
+    });
+
+    for (const history of passwordHistories) {
+      const isSame = await this.hashingService.compare(
+        changePasswordDto.newPassword,
+        history.passwordHash,
+      );
+      if (isSame) {
+        throw new BadRequestException(
+          'You cannot use a password you have used before.',
+        );
+      }
+    }
 
     // generate email verification token
     const otp = this.helperService.generateToken();
@@ -557,26 +606,29 @@ export class UsersService {
       );
     }
 
-    // update the user password
-    await this.userRepo.update(
-      {
-        id: passwordChangeToken.iamUserId,
-      },
-      {
-        passwordHash: passwordChangeToken.passwordHash,
-      },
-    );
-    // TODO: add password history
+    await this.dataSource.transaction(async (manager) => {
+      // update the user password
+      await manager.update(
+        IamUser,
+        { id: passwordChangeToken.iamUserId },
+        { passwordHash: passwordChangeToken.passwordHash },
+      );
 
-    await this.passwordChangeTokenRepo.update(
-      {
-        id: passwordChangeToken.id,
-      },
-      {
-        isUsed: true,
-        passwordHash: '',
-      },
-    );
+      // add password history
+      await manager.save(PasswordHistory, {
+        iamUserId: passwordChangeToken.iamUserId,
+        passwordHash: passwordChangeToken.passwordHash,
+      });
+
+      await manager.update(
+        PasswordChangeToken,
+        { id: passwordChangeToken.id },
+        {
+          isUsed: true,
+          passwordHash: '',
+        },
+      );
+    });
 
     return {
       message: 'Your password has been changed successfully.',
@@ -694,7 +746,7 @@ export class UsersService {
         throw new NotFoundException('Invalid Credentials');
       }
 
-      // check if the refreah token is valid (i.e. in the db)
+      // check if the refresh token is valid (i.e. in the db)
       const isValid = await this.refreshTokenStorageService.validate(
         user.id,
         refreshTokenId ?? '',
@@ -728,9 +780,16 @@ export class UsersService {
     } catch (error) {
       console.error('Refresh Token Error', error);
       if (error instanceof InvalidatedRefreshTokenException) {
-        // TODO: Alert user of possible login compromised
-        throw new UnauthorizedException('Access Denined');
+        this.logger.error(
+          `Login compromised alert for user ${refreshTokenDto.refreshToken}`,
+        );
+        // TODO: In a real app, send a security alert email to the user here.
+        throw new UnauthorizedException('Access Denied');
       }
+
+      console.log('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
+      console.log(error);
+      console.log('eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
 
       throw new UnauthorizedException('Invalid refresh token');
     }
