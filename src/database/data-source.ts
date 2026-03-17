@@ -16,6 +16,8 @@ import { WalletBalance } from '../wallet/entities/wallet-balance.entity';
 import { FundingTransaction } from '../wallet/entities/funding-transaction.entity';
 import { Trade } from '../trading/entities/trade.entity';
 import { TradeFee } from '../trading/entities/trade-fee.entity';
+import { LedgerEntry } from '../audit/entities/ledger-entry.entity';
+import { AuditLog } from '../audit/entities/audit-log.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -40,6 +42,8 @@ export const AppDataSource = new DataSource({
     FundingTransaction,
     Trade,
     TradeFee,
+    LedgerEntry,
+    AuditLog,
   ],
 
   migrations: ['src/database/migrations/*.ts'],

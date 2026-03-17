@@ -1,7 +1,6 @@
 /* eslint-disable prefer-const */
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -16,12 +15,12 @@ import { WalletService } from 'src/wallet/wallet.service';
 import { WalletBalance } from 'src/wallet/entities/wallet-balance.entity';
 import { TradeStatus } from 'src/common/enums/trade-status.enum';
 import { TradeType } from 'src/common/enums/trade-type.enum';
+import { AuditService } from 'src/audit/audit.service';
 
 @Injectable()
 export class TradingService {
   private readonly logger = new Logger(TradingService.name);
-  // TODO: make admin nanipulate this value
-  private readonly PLATFORM_FEE_PERCENT = 0.01; // i choosed 1% fee for now,
+  private readonly PLATFORM_FEE_PERCENT = 0.01; // 1% fee for now
 
   constructor(
     private readonly dataSource: DataSource,
@@ -31,6 +30,7 @@ export class TradingService {
     private readonly tradeFeeRepo: Repository<TradeFee>,
     private readonly fxService: FxService,
     private readonly walletService: WalletService,
+    private readonly auditService: AuditService,
   ) {}
 
   async executeTrade(userId: string, dto: ExecuteTradeDto): Promise<Trade> {
@@ -65,10 +65,11 @@ export class TradingService {
       const feeAmount = grossToAmount * this.PLATFORM_FEE_PERCENT;
       const netToAmount = grossToAmount - feeAmount;
 
+      const sourceBalanceBefore = sourceBalance.balance;
       // Debit Source
       sourceBalance.balance =
         Number(sourceBalance.balance) - Number(dto.fromAmount);
-      await manager.save(sourceBalance);
+      const savedSourceBalance = await manager.save(sourceBalance);
 
       // Credit Destination
       let destinationBalance = await manager.findOne(WalletBalance, {
@@ -84,9 +85,10 @@ export class TradingService {
         });
       }
 
+      const destBalanceBefore = destinationBalance.balance;
       destinationBalance.balance =
         Number(destinationBalance.balance) + Number(netToAmount);
-      await manager.save(destinationBalance);
+      const savedDestBalance = await manager.save(destinationBalance);
 
       // Record Trade
       const trade = manager.create(Trade, {
@@ -114,7 +116,43 @@ export class TradingService {
       });
       await manager.save(tradeFee);
 
-      // TODO: Create ledger entries in Audit module
+      // Record Ledger Entries
+      // Debit Entry
+      await this.auditService.recordLedgerEntry(
+        {
+          iamUserId: userId,
+          entityType: 'TRADE',
+          entityId: savedTrade.id,
+          action: 'DEBIT',
+          amount: dto.fromAmount,
+          currencyCode: dto.fromCurrencyCode,
+          balanceBefore: sourceBalanceBefore,
+          balanceAfter: savedSourceBalance.balance,
+          metadata: { trade_id: savedTrade.id, side: 'from' },
+        },
+        manager,
+      );
+
+      // Credit Entry
+      await this.auditService.recordLedgerEntry(
+        {
+          iamUserId: userId,
+          entityType: 'TRADE',
+          entityId: savedTrade.id,
+          action: 'CREDIT',
+          amount: netToAmount,
+          currencyCode: dto.toCurrencyCode,
+          balanceBefore: destBalanceBefore,
+          balanceAfter: savedDestBalance.balance,
+          metadata: {
+            trade_id: savedTrade.id,
+            side: 'to',
+            rate,
+            fee: feeAmount,
+          },
+        },
+        manager,
+      );
 
       return savedTrade;
     });

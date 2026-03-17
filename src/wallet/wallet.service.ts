@@ -10,11 +10,11 @@ import { DataSource, Repository } from 'typeorm';
 import { Wallet } from './entities/wallet.entity';
 import { WalletBalance } from './entities/wallet-balance.entity';
 import { FundingTransaction } from './entities/funding-transaction.entity';
-import { MockFundingProvider } from './providers/mock-funding.provider';
 import { InitializeFundingDto } from './dto/initialize-funding.dto';
 import { TransactionStatus } from 'src/common/enums/transaction-status.enum';
 import { Currency } from 'src/fx/entities/currency.entity';
 import { IamUser } from 'src/iam/entities/iam-user.entity';
+import { AuditService } from 'src/audit/audit.service';
 import { FundingProvider } from './providers/funding-provider.interface';
 
 @Injectable()
@@ -34,7 +34,9 @@ export class WalletService {
     @InjectRepository(IamUser)
     private readonly userRepo: Repository<IamUser>,
     private readonly fundingProvider: FundingProvider,
+    private readonly auditService: AuditService,
   ) {}
+
 
   async getOrCreateWallet(userId: string): Promise<Wallet> {
     let wallet = await this.walletRepo.findOneBy({ iamUserId: userId });
@@ -131,10 +133,22 @@ export class WalletService {
           });
         }
 
+        const balanceBefore = balance.balance;
         balance.balance = Number(balance.balance) + Number(transaction.amount);
-        await manager.save(balance);
+        const savedBalance = await manager.save(balance);
 
-        // TODO: Create ledger entry in Audit module
+        // 3. Record Ledger Entry
+        await this.auditService.recordLedgerEntry({
+          iamUserId: userId,
+          entityType: 'FUNDING',
+          entityId: transaction.id,
+          action: 'CREDIT',
+          amount: transaction.amount,
+          currencyCode: transaction.currencyCode,
+          balanceBefore: balanceBefore,
+          balanceAfter: savedBalance.balance,
+          metadata: { reference: transaction.reference, provider: transaction.provider },
+        }, manager);
       });
 
       return { status: 'success', message: 'Wallet funded successfully' };
