@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -7,12 +15,15 @@ import {
 } from '@nestjs/swagger';
 import { TradingService } from './trading.service';
 import { ExecuteTradeDto } from './dto/execute-trade.dto';
+import { Auth } from 'src/common/decorators/auth.decorator';
+import { AuthType } from 'src/common/enums/auth-type.enum';
 import { ActiveUser } from 'src/common/decorators/active-user.decorator';
 import { DataResponse } from 'src/common/responses';
 import { AuthenticationGuard } from 'src/common/guards/authentication/authentication.guard';
 import { RolesGuard } from 'src/common/guards/roles/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
+import { TradeHistoryFilterDto } from './dto/trade-history-filter.dto';
 
 @ApiTags('Trading')
 @ApiBearerAuth()
@@ -42,11 +53,24 @@ export class TradingController {
   @Get('history')
   async getHistory(
     @ActiveUser('sub') userId: string,
-  ): Promise<DataResponse<any>> {
-    const trades = await this.tradingService.getUserTrades(userId);
+    @Query() filterDto: TradeHistoryFilterDto,
+  ): Promise<any> {
+    const { items, total } = await this.tradingService.getUserTrades(
+      userId,
+      filterDto,
+    );
+
+    const limit = filterDto.limit || 10;
+    const page = filterDto.page || 1;
+
     return {
       message: 'Trade history retrieved successfully',
-      data: trades,
+      data: items,
+      pagination: {
+        total,
+        hasNextPage: total > page * limit,
+        hasPrevPage: page > 1,
+      },
     };
   }
 

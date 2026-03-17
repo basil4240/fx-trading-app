@@ -40,7 +40,42 @@ export class WalletService {
     private readonly notificationDispatcher: NotificationDispatcher,
   ) {}
 
+  async getFundingHistory(
+    userId: string,
+    filterDto: import('./dto/funding-history-filter.dto').FundingHistoryFilterDto,
+  ): Promise<{ items: FundingTransaction[]; total: number }> {
+    const {
+      limit = 10,
+      page = 1,
+      currencyCode,
+      status,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = filterDto;
+    const offset = (page - 1) * limit;
 
+    const queryBuilder = this.transactionRepo
+      .createQueryBuilder('transaction')
+      .where('transaction.walletId = :userId', { userId });
+
+    if (currencyCode) {
+      queryBuilder.andWhere('transaction.currencyCode = :currencyCode', {
+        currencyCode,
+      });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('transaction.status = :status', { status });
+    }
+
+    queryBuilder
+      .orderBy(`transaction.${sortBy}`, sortOrder as 'ASC' | 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+    return { items, total };
+  }
 
   async getOrCreateWallet(userId: string): Promise<Wallet> {
     let wallet = await this.walletRepo.findOneBy({ iamUserId: userId });

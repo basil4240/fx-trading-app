@@ -5,18 +5,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Brackets } from 'typeorm';
 import { Currency } from './entities/currency.entity';
 import { CurrencyPair } from './entities/currency-pair.entity';
 import { RedisService } from 'src/common/services/local-storage/redis/redis.service';
 import { CreateCurrencyDto } from './dto/create-currency.dto';
 import { CreateCurrencyPairDto } from './dto/create-currency-pair.dto';
+import { CurrencyFilterDto } from './dto/currency-filter.dto';
+import { CurrencyPairFilterDto } from './dto/currency-pair-filter.dto';
 import { FxProvider } from './providers/fx-provider.interface';
 
 @Injectable()
 export class FxService {
   private readonly logger = new Logger(FxService.name);
-  private readonly CACHE_TTL = 3600; 
+  private readonly CACHE_TTL = 3600;
 
   constructor(
     @InjectRepository(Currency)
@@ -93,8 +95,35 @@ export class FxService {
     return this.currencyRepo.save(currency);
   }
 
-  async listCurrencies(): Promise<Currency[]> {
-    return this.currencyRepo.find();
+  async listCurrencies(filterDto: CurrencyFilterDto): Promise<{ items: Currency[], total: number }> {
+    const { limit = 10, page = 1, isActive, isFundingCurrency, search, sortBy = 'code', sortOrder = 'ASC' } = filterDto;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = this.currencyRepo.createQueryBuilder('currency');
+
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('currency.isActive = :isActive', { isActive });
+    }
+
+    if (isFundingCurrency !== undefined) {
+      queryBuilder.andWhere('currency.isFundingCurrency = :isFundingCurrency', { isFundingCurrency });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('currency.code ILIKE :search', { search: `%${search}%` })
+            .orWhere('currency.name ILIKE :search', { search: `%${search}%` });
+        }),
+      );
+    }
+
+    queryBuilder.orderBy(`currency.${sortBy}`, sortOrder as 'ASC' | 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+    return { items, total };
   }
 
   // ============================================================================
@@ -131,10 +160,32 @@ export class FxService {
     return this.currencyPairRepo.save(pair);
   }
 
-  async listPairs(): Promise<CurrencyPair[]> {
-    return this.currencyPairRepo.find({
-      relations: ['baseCurrency', 'quoteCurrency'],
-    });
+  async listPairs(filterDto: CurrencyPairFilterDto): Promise<{ items: CurrencyPair[], total: number }> {
+    const { limit = 10, page = 1, isActive, baseCurrencyCode, quoteCurrencyCode, sortBy = 'createdAt', sortOrder = 'DESC' } = filterDto;
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = this.currencyPairRepo.createQueryBuilder('pair')
+      .leftJoinAndSelect('pair.baseCurrency', 'baseCurrency')
+      .leftJoinAndSelect('pair.quoteCurrency', 'quoteCurrency');
+
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('pair.isActive = :isActive', { isActive });
+    }
+
+    if (baseCurrencyCode) {
+      queryBuilder.andWhere('pair.baseCurrencyCode = :baseCurrencyCode', { baseCurrencyCode });
+    }
+
+    if (quoteCurrencyCode) {
+      queryBuilder.andWhere('pair.quoteCurrencyCode = :quoteCurrencyCode', { quoteCurrencyCode });
+    }
+
+    queryBuilder.orderBy(`pair.${sortBy}`, sortOrder as 'ASC' | 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+    return { items, total };
   }
 
   async togglePairStatus(id: string): Promise<CurrencyPair> {

@@ -10,8 +10,8 @@ import { DataSource, Repository } from 'typeorm';
 import { Trade } from './entities/trade.entity';
 import { TradeFee } from './entities/trade-fee.entity';
 import { ExecuteTradeDto } from './dto/execute-trade.dto';
+import { TradeHistoryFilterDto } from './dto/trade-history-filter.dto';
 import { FxService } from 'src/fx/fx.service';
-import { WalletService } from 'src/wallet/wallet.service';
 import { WalletBalance } from 'src/wallet/entities/wallet-balance.entity';
 import { TradeStatus } from 'src/common/enums/trade-status.enum';
 import { TradeType } from 'src/common/enums/trade-type.enum';
@@ -73,7 +73,7 @@ export class TradingService {
       // Debit Source
       sourceBalance.balance =
         Number(sourceBalance.balance) - Number(dto.fromAmount);
-      const savedSourceBalance = await manager.save(sourceBalance);
+      await manager.save(sourceBalance);
 
       // Credit Destination
       let destinationBalance = await manager.findOne(WalletBalance, {
@@ -92,7 +92,7 @@ export class TradingService {
       const destBalanceBefore = destinationBalance.balance;
       destinationBalance.balance =
         Number(destinationBalance.balance) + Number(netToAmount);
-      const savedDestBalance = await manager.save(destinationBalance);
+      await manager.save(destinationBalance);
 
       // Record Trade
       const trade = manager.create(Trade, {
@@ -131,7 +131,7 @@ export class TradingService {
           amount: dto.fromAmount,
           currencyCode: dto.fromCurrencyCode,
           balanceBefore: sourceBalanceBefore,
-          balanceAfter: savedSourceBalance.balance,
+          balanceAfter: sourceBalance.balance,
           metadata: { trade_id: savedTrade.id, side: 'from' },
         },
         manager,
@@ -147,7 +147,7 @@ export class TradingService {
           amount: netToAmount,
           currencyCode: dto.toCurrencyCode,
           balanceBefore: destBalanceBefore,
-          balanceAfter: savedDestBalance.balance,
+          balanceAfter: destinationBalance.balance,
           metadata: {
             trade_id: savedTrade.id,
             side: 'to',
@@ -176,11 +176,51 @@ export class TradingService {
     });
   }
 
-  async getUserTrades(userId: string): Promise<Trade[]> {
-    return this.tradeRepo.find({
-      where: { iamUserId: userId },
-      order: { createdAt: 'DESC' },
-    });
+  async getUserTrades(userId: string, filterDto: TradeHistoryFilterDto): Promise<{ items: Trade[], total: number }> {
+    const { 
+      limit = 10, 
+      page = 1, 
+      fromCurrency, 
+      toCurrency, 
+      status, 
+      fromDate, 
+      toDate, 
+      sortBy = 'createdAt', 
+      sortOrder = 'DESC' 
+    } = filterDto;
+
+    const offset = (page - 1) * limit;
+
+    const queryBuilder = this.tradeRepo.createQueryBuilder('trade')
+      .where('trade.iamUserId = :userId', { userId });
+
+    if (fromCurrency) {
+      queryBuilder.andWhere('trade.fromCurrencyCode = :fromCurrency', { fromCurrency });
+    }
+
+    if (toCurrency) {
+      queryBuilder.andWhere('trade.toCurrencyCode = :toCurrency', { toCurrency });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('trade.status = :status', { status });
+    }
+
+    if (fromDate) {
+      queryBuilder.andWhere('trade.createdAt >= :fromDate', { fromDate });
+    }
+
+    if (toDate) {
+      queryBuilder.andWhere('trade.createdAt <= :toDate', { toDate });
+    }
+
+    queryBuilder.orderBy(`trade.${sortBy}`, sortOrder as 'ASC' | 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    const [items, total] = await queryBuilder.getManyAndCount();
+
+    return { items, total };
   }
 
   async getTradeById(id: string, userId: string): Promise<Trade> {

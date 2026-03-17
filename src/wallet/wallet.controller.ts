@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -9,7 +10,8 @@ import { WalletService } from './wallet.service';
 import { ActiveUser } from 'src/common/decorators/active-user.decorator';
 import { InitializeFundingDto } from './dto/initialize-funding.dto';
 import { VerifyFundingDto } from './dto/verify-funding.dto';
-import { DataResponse } from 'src/common/responses';
+import { FundingHistoryFilterDto } from './dto/funding-history-filter.dto';
+import { DataResponse, PaginatedDataResponse } from 'src/common/responses';
 import { AuthenticationGuard } from 'src/common/guards/authentication/authentication.guard';
 import { RolesGuard } from 'src/common/guards/roles/roles.guard';
 import { Role } from 'src/common/enums/role.enum';
@@ -33,6 +35,34 @@ export class WalletController {
     return {
       message: 'Wallet balances retrieved successfully',
       data: balances,
+    };
+  }
+
+  @ApiOperation({ summary: 'Get funding history' })
+  @Roles(Role.User)
+  @ApiResponse({ status: 200, description: 'Success' })
+  @Get('funding-history')
+  async getFundingHistory(
+    @ActiveUser('sub') userId: string,
+    @Query() filterDto: FundingHistoryFilterDto,
+  ): Promise<PaginatedDataResponse<any>> {
+    const { items, total } = await this.walletService.getFundingHistory(
+      userId,
+      filterDto,
+    );
+
+    const limit = filterDto.limit || 10;
+    const page = filterDto.page || 1;
+
+
+    return {
+      message: 'Funding history retrieved successfully',
+      data: items,
+      pagination: {
+        total,
+        hasNextPage: page * limit < total,
+        hasPrevPage: page > 1,
+      },
     };
   }
 
