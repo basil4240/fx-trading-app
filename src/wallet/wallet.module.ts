@@ -10,6 +10,7 @@ import { Currency } from 'src/fx/entities/currency.entity';
 import { IamUser } from 'src/iam/entities/iam-user.entity';
 import { FundingProvider } from './providers/funding-provider.interface';
 import { CommonModule } from 'src/common/common.module';
+import { NotificationModule } from 'src/notification/notification.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CommonModule } from 'src/common/common.module';
       Currency,
       IamUser,
     ]),
+    NotificationModule
   ],
   controllers: [WalletController],
   providers: [

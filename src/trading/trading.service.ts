@@ -16,6 +16,8 @@ import { WalletBalance } from 'src/wallet/entities/wallet-balance.entity';
 import { TradeStatus } from 'src/common/enums/trade-status.enum';
 import { TradeType } from 'src/common/enums/trade-type.enum';
 import { AuditService } from 'src/audit/audit.service';
+import { NotificationDispatcher } from 'src/notification/notification.dispatcher';
+import { IamUser } from 'src/iam/entities/iam-user.entity';
 
 @Injectable()
 export class TradingService {
@@ -28,9 +30,11 @@ export class TradingService {
     private readonly tradeRepo: Repository<Trade>,
     @InjectRepository(TradeFee)
     private readonly tradeFeeRepo: Repository<TradeFee>,
+    @InjectRepository(IamUser)
+    private readonly userRepo: Repository<IamUser>,
     private readonly fxService: FxService,
-    private readonly walletService: WalletService,
     private readonly auditService: AuditService,
+    private readonly notificationDispatcher: NotificationDispatcher,
   ) {}
 
   async executeTrade(userId: string, dto: ExecuteTradeDto): Promise<Trade> {
@@ -153,6 +157,20 @@ export class TradingService {
         },
         manager,
       );
+
+      // Send Notification
+      const user = await this.userRepo.findOneBy({ id: userId });
+      if (user) {
+        await this.notificationDispatcher.sendTradeConfirmationEmail(user.email, {
+          fromAmount: Number(dto.fromAmount),
+          fromCurrency: dto.fromCurrencyCode,
+          toAmount: Number(netToAmount),
+          toCurrency: dto.toCurrencyCode,
+          rate: rate,
+          fee: feeAmount,
+          reference: savedTrade.id,
+        });
+      }
 
       return savedTrade;
     });

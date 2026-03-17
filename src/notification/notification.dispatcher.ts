@@ -8,6 +8,9 @@ import {
   PasswordChangedEmailJob,
   PasswordResetEmailJob,
   WelcomeEmailJob,
+  FundingSuccessEmailJob,
+  FundingFailedEmailJob,
+  TradeConfirmationEmailJob,
 } from './email/dto/email-job.dto';
 import { EMAIL_NOTIFICATION_QUEUE } from 'src/common/constants/app.constant';
 
@@ -59,6 +62,39 @@ export class NotificationDispatcher {
   ): Promise<void> {
     await this.dispatchEmail({
       type: EmailJobType.Generic,
+      to,
+      data,
+    });
+  }
+
+  async sendFundingSuccessEmail(
+    to: string,
+    data: FundingSuccessEmailJob['data'],
+  ): Promise<void> {
+    await this.dispatchEmail({
+      type: EmailJobType.FundingSuccess,
+      to,
+      data,
+    });
+  }
+
+  async sendFundingFailedEmail(
+    to: string,
+    data: FundingFailedEmailJob['data'],
+  ): Promise<void> {
+    await this.dispatchEmail({
+      type: EmailJobType.FundingFailed,
+      to,
+      data,
+    });
+  }
+
+  async sendTradeConfirmationEmail(
+    to: string,
+    data: TradeConfirmationEmailJob['data'],
+  ): Promise<void> {
+    await this.dispatchEmail({
+      type: EmailJobType.TradeConfirmation,
       to,
       data,
     });

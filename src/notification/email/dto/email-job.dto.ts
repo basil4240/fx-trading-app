@@ -3,6 +3,9 @@ export enum EmailJobType {
   PasswordReset = 'PASSWORD_RESET',
   PasswordChanged = 'PASSWORD_CHANGED',
   Generic = 'GENERIC',
+  FundingSuccess = 'FUNDING_SUCCESS',
+  FundingFailed = 'FUNDING_FAILED',
+  TradeConfirmation = 'TRADE_CONFIRMATION',
 }
 
 export interface BaseEmailJob {
@@ -41,8 +44,43 @@ export interface GenericEmailJob extends BaseEmailJob {
   };
 }
 
+export interface FundingSuccessEmailJob extends BaseEmailJob {
+  type: EmailJobType.FundingSuccess;
+  data: {
+    amount: number;
+    currency: string;
+    reference: string;
+  };
+}
+
+export interface FundingFailedEmailJob extends BaseEmailJob {
+  type: EmailJobType.FundingFailed;
+  data: {
+    amount: number;
+    currency: string;
+    reference: string;
+    reason?: string;
+  };
+}
+
+export interface TradeConfirmationEmailJob extends BaseEmailJob {
+  type: EmailJobType.TradeConfirmation;
+  data: {
+    fromAmount: number;
+    fromCurrency: string;
+    toAmount: number;
+    toCurrency: string;
+    rate: number;
+    fee: number;
+    reference: string;
+  };
+}
+
 export type EmailJob =
   | WelcomeEmailJob
   | PasswordResetEmailJob
   | PasswordChangedEmailJob
-  | GenericEmailJob;
+  | GenericEmailJob
+  | FundingSuccessEmailJob
+  | FundingFailedEmailJob
+  | TradeConfirmationEmailJob;

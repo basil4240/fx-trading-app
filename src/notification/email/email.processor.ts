@@ -8,6 +8,9 @@ import {
   passwordChangedTemplate,
   genericTemplate,
   WelcomeTemplate,
+  fundingSuccessTemplate,
+  fundingFailedTemplate,
+  tradeConfirmationTemplate,
 } from './templates/email.templates';
 import { EMAIL_NOTIFICATION_QUEUE } from 'src/common/constants/app.constant';
 
@@ -60,6 +63,15 @@ export class EmailProcessor extends WorkerHost {
 
       case EmailJobType.Generic:
         return genericTemplate(payload.data);
+
+      case EmailJobType.FundingSuccess:
+        return fundingSuccessTemplate(payload.data);
+
+      case EmailJobType.FundingFailed:
+        return fundingFailedTemplate(payload.data);
+
+      case EmailJobType.TradeConfirmation:
+        return tradeConfirmationTemplate(payload.data);
 
       default:
         throw new Error(`Unknown email job type: ${(payload as any).type}`);

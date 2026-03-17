@@ -15,6 +15,8 @@ import { TransactionStatus } from 'src/common/enums/transaction-status.enum';
 import { Currency } from 'src/fx/entities/currency.entity';
 import { IamUser } from 'src/iam/entities/iam-user.entity';
 import { AuditService } from 'src/audit/audit.service';
+import { NotificationDispatcher } from 'src/notification/notification.dispatcher';
+import { MockFundingProvider } from './providers/mock-funding.provider';
 import { FundingProvider } from './providers/funding-provider.interface';
 
 @Injectable()
@@ -35,7 +37,9 @@ export class WalletService {
     private readonly userRepo: Repository<IamUser>,
     private readonly fundingProvider: FundingProvider,
     private readonly auditService: AuditService,
+    private readonly notificationDispatcher: NotificationDispatcher,
   ) {}
+
 
 
   async getOrCreateWallet(userId: string): Promise<Wallet> {
@@ -151,6 +155,16 @@ export class WalletService {
         }, manager);
       });
 
+      // 4. Send Notification
+      const user = await this.userRepo.findOneBy({ id: userId });
+      if (user) {
+        await this.notificationDispatcher.sendFundingSuccessEmail(user.email, {
+          amount: Number(transaction.amount),
+          currency: transaction.currencyCode,
+          reference: transaction.reference,
+        });
+      }
+
       return { status: 'success', message: 'Wallet funded successfully' };
     } else {
       await this.transactionRepo.update(
@@ -159,6 +173,16 @@ export class WalletService {
           status: TransactionStatus.Failed,
         },
       );
+
+      const user = await this.userRepo.findOneBy({ id: userId });
+      if (user) {
+        await this.notificationDispatcher.sendFundingFailedEmail(user.email, {
+          amount: Number(transaction.amount),
+          currency: transaction.currencyCode,
+          reference: transaction.reference,
+        });
+      }
+
       throw new BadRequestException('Payment verification failed');
     }
   }
