@@ -19,6 +19,7 @@ export class PasswordChangeToken {
   @Column({ name: 'iam_user_id' })
   iamUserId: string;
 
+   @Index()
   @Column({ unique: true })
   token: string;
 
