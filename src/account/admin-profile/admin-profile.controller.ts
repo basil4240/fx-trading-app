@@ -1,7 +1,5 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Auth } from 'src/common/decorators/auth.decorator';
-import { AuthType } from 'src/common/enums/auth-type.enum';
 import { ActiveUser } from 'src/common/decorators/active-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
@@ -10,10 +8,12 @@ import { AdminProfileService } from './admin-profile.service';
 import { UpdateAdminProfileDto } from './dto/update-admin-profile.dto';
 import { UpdateAdminScopeDto } from './dto/update-admin-scope.dto';
 import { AdminProfile } from '../entities/admin-profile.entity';
+import { AuthenticationGuard } from 'src/common/guards/authentication/authentication.guard';
+import { RolesGuard } from 'src/common/guards/roles/roles.guard';
 
 @ApiTags('Admin Profiles')
 @ApiBearerAuth()
-@Auth(AuthType.Bearer)
+@UseGuards(AuthenticationGuard, RolesGuard)
 @Controller('admin-profiles')
 export class AdminProfileController {
   constructor(private readonly adminProfileService: AdminProfileService) {}

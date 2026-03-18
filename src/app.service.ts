@@ -3,6 +3,6 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class AppService {
   getHello(): string {
-    return 'Hello World!';
+    return 'Fx Server is running (I will add a simple front end to this route if time permits)';
   }
 }

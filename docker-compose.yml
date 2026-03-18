@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: docker
+      POSTGRES_PASSWORD: docker
+      POSTGRES_DB: fx_trading_app_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: always
+    ports:
+      - '1025:1025' # SMTP server
+      - '8025:8025' # Web UI
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      CORS_ORIGIN: http://localhost:3000
+      # Database connection (using service names as hostnames)
+      DATABASE_URL: postgres://docker:docker@postgres:5432/fx_trading_app_db
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: docker
+      DB_PASSWORD: docker
+      DB_NAME: fx_trading_app_db
+      # Redis connection (using service names as hostnames)
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_TTL_SECONDS: 300
+      # MailHog SMTP settings
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_SECURE: false
+      MAIL_USER: ''
+      MAIL_PASSWORD: ''
+      MAIL_FROM_NAME: 'FX Trading App'
+      MAIL_FROM_ADDRESS: 'no-reply@fxtrading.com'
+      # JWT Secrets
+      JWT_SECRET: a5f2a7b832c033d470949d4299a4767e81acdecc7a93e159
+      JWT_EXPIRES_IN: 13600                            # access token TTL
+
+      JWT_REFRESH_SECRET: f41a6d8e062a95cfdcf4bc9a3aff01d27b6ebdd5799230d119721bb45fadcf20
+      JWT_REFRESH_EXPIRES_IN: 186400                     # refresh token TTL
+
+      JWT_TOKEN_AUDIENCE: localhost
+      JWT_TOKEN_ISSUER: localhost 
+      # Exchange Rate API
+      FX_PROVIDER: exchangerate_api # exchangerate_api | open_exchange_rates | frankfurter
+      FX_API_KEY: your_exchangerate_api_key # not needed for frankfurter (free, no key)
+      FX_API_BASE_URL: https://v6.exchangerate-api.com/v6
+      FX_CACHE_TTL_SECONDS: 300 # how long to cache rates in Redis (5 min)
+      FX_FALLBACK_ENABLED: true # use last known rate if provider is down
+      FX_SUPPORTED_CURRENCIES: NGN,USD,EUR,GBP,CAD,JPY,AUD,CHF
+      OTP_LENGTH: 6
+      OTP_EXPIRES_IN_MINUTES: 10
+      OTP_MAX_ATTEMPTS: 5
+      BCRYPT_ROUNDS: 12 # 10 is minimum, 12 is recommended
+      PASSWORD_RESET_EXPIRES_IN_MINUTES: 30
+      PASSWORD_HISTORY_LIMIT: 5 # prevent reuse of last N passwords
+      MAX_LOGIN_ATTEMPTS: 5 # before account is temporarily locked
+      ACCOUNT_LOCK_DURATION_MINUTES: 15
+
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+      - mailhog
+    command: >
+      sh -c "until pg_isready -h postgres -p 5432; do echo Waiting for postgres; sleep 2; done; 
+             yarn migration:run && 
+             node dist/main"
+    volumes:
+      - .:/app # Mount current directory for app code (useful for local development)
+      - /app/node_modules # Prevent host node_modules from overriding container node_modules
+
+volumes:
+  pg_data:
+  redis_data:

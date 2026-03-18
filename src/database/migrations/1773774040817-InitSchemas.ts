@@ -4,6 +4,13 @@ export class InitSchemas1773774040817 implements MigrationInterface {
     name = 'InitSchemas1773774040817'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "iam"`);
+        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "account"`);
+        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "fx"`);
+        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "wallet"`);
+        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "trading"`);
+        await queryRunner.query(`CREATE SCHEMA IF NOT EXISTS "audit"`);
+
         await queryRunner.query(`CREATE TABLE "iam"."password_histories" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "iam_user_id" uuid NOT NULL, "password_hash" character varying NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "expires_at" TIMESTAMP, CONSTRAINT "PK_3b3ab30d6152c933113c9534442" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE INDEX "IDX_0773e3e1d5660057a283f3f08e" ON "iam"."password_histories" ("iam_user_id") `);
         await queryRunner.query(`CREATE TABLE "iam"."password_reset_tokens" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "iam_user_id" uuid NOT NULL, "token" character varying NOT NULL, "expires_at" TIMESTAMP NOT NULL, "is_used" boolean NOT NULL DEFAULT false, "verified" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "UQ_ab673f0e63eac966762155508ee" UNIQUE ("token"), CONSTRAINT "PK_d16bebd73e844c48bca50ff8d3d" PRIMARY KEY ("id"))`);
@@ -103,6 +110,12 @@ export class InitSchemas1773774040817 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "iam"."password_reset_tokens"`);
         await queryRunner.query(`DROP INDEX "iam"."IDX_0773e3e1d5660057a283f3f08e"`);
         await queryRunner.query(`DROP TABLE "iam"."password_histories"`);
-    }
 
+        await queryRunner.query(`DROP SCHEMA IF EXISTS "audit" CASCADE`);
+        await queryRunner.query(`DROP SCHEMA IF EXISTS "trading" CASCADE`);
+        await queryRunner.query(`DROP SCHEMA IF EXISTS "wallet" CASCADE`);
+        await queryRunner.query(`DROP SCHEMA IF EXISTS "fx" CASCADE`);
+        await queryRunner.query(`DROP SCHEMA IF EXISTS "account" CASCADE`);
+        await queryRunner.query(`DROP SCHEMA IF EXISTS "iam" CASCADE`);
+    }
 }

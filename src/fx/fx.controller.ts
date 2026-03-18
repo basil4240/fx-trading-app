@@ -12,8 +12,6 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 import { FxService } from './fx.service';
 import { CreateCurrencyDto } from './dto/create-currency.dto';
 import { CreateCurrencyPairDto } from './dto/create-currency-pair.dto';
-import { Auth } from 'src/common/decorators/auth.decorator';
-import { AuthType } from 'src/common/enums/auth-type.enum';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { Role } from 'src/common/enums/role.enum';
 import { ActiveUser } from 'src/common/decorators/active-user.decorator';
