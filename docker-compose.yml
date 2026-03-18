@@ -48,8 +48,8 @@ services:
       MAIL_HOST: mailhog
       MAIL_PORT: 1025
       MAIL_SECURE: false
-      MAIL_USER: ''
-      MAIL_PASSWORD: ''
+      MAIL_USER: 'e'
+      MAIL_PASSWORD: 'e'
       MAIL_FROM_NAME: 'FX Trading App'
       MAIL_FROM_ADDRESS: 'no-reply@fxtrading.com'
       # JWT Secrets

@@ -33,15 +33,20 @@ export class SmtpEmailService extends EmailService {
 
     this.fromAddress = `"${smtpEmailConfiguration.fromName}" <${smtpEmailConfiguration.fromAddress}>`;
 
-    this.transporter = nodemailer.createTransport({
+    const transportOptions: any = {
       host: smtpEmailConfiguration.host,
       port: smtpEmailConfiguration.port,
       secure: smtpEmailConfiguration.port === 465,
-      auth: {
+    };
+
+    if (smtpEmailConfiguration.user && smtpEmailConfiguration.password) {
+      transportOptions.auth = {
         user: smtpEmailConfiguration.user,
         pass: smtpEmailConfiguration.password,
-      },
-    });
+      };
+    }
+
+    this.transporter = nodemailer.createTransport(transportOptions);
   }
 
   async sendEmail(options: SendEmailOptions): Promise<void> {
