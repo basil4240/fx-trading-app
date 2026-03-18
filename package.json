@@ -21,7 +21,9 @@
     "migration:create": "typeorm-ts-node-commonjs migration:create",
     "migration:generate": "cross-env NODE_OPTIONS=\"-r tsconfig-paths/register\" typeorm-ts-node-commonjs -d src/database/data-source.ts migration:generate src/database/migrations/AutoMigration",
     "migration:run": "cross-env NODE_OPTIONS=\"-r tsconfig-paths/register\" typeorm-ts-node-commonjs -d src/database/data-source.ts migration:run",
-    "migration:revert": "cross-env NODE_OPTIONS='-r tsconfig-paths/register' typeorm-ts-node-commonjs -d src/database/data-source.ts migration:revert"
+    "migration:revert": "cross-env NODE_OPTIONS='-r tsconfig-paths/register' typeorm-ts-node-commonjs -d src/database/data-source.ts migration:revert",
+    "schema:drop": "cross-env NODE_OPTIONS=\"-r tsconfig-paths/register\" typeorm-ts-node-commonjs -d src/database/data-source.ts schema:drop",
+    "migration:generate:initial": "cross-env NODE_OPTIONS=\"-r tsconfig-paths/register\" typeorm-ts-node-commonjs -d src/database/data-source.ts migration:generate src/database/migrations/InitSchemas"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
